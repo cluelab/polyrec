@@ -1,0 +1,20 @@
+{
+  "generator-lib-java": {
+    "githubUser": "cluelab",
+    "authorName": "Vittorio Fuccella",
+    "authorEmail": "vfuccella@unisa.it",
+    "libName": "polyrec",
+    "libGroup": "it.unisa.di.cluelab",
+    "libPackage": "it.unisa.di.cluelab.polyrec",
+    "libVersion": "0.2.0",
+    "libDesc": "PolyRec is a unistroke gesture recognizer.",
+    "targetJava": "1.6",
+    "libTags": "",
+    "bintrayUser": "cluelab",
+    "bintrayRepo": "polyrec",
+    "bintraySignFiles": true,
+    "mavenCentralSync": false,
+    "enableQualityChecks": true,
+    "usedGeneratorVersion": "2.3.0"
+  }
+}
