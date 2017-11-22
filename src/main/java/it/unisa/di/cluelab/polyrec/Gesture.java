@@ -35,6 +35,7 @@ package it.unisa.di.cluelab.polyrec;
 
 import it.unisa.di.cluelab.polyrec.geom.Rectangle2D;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
@@ -45,7 +46,7 @@ import java.util.ListIterator;
  * @author Vittorio
  *
  */
-public class Gesture {
+public class Gesture implements Serializable {
     // TODO CHECKSTYLE:OFF
     ArrayList<TPoint> points;
     // CHECKSTYLE:ON
@@ -54,6 +55,10 @@ public class Gesture {
     private TPoint centroid;
     private ArrayList<Double> lengths;
     private Rectangle2D.Double boundingBox;
+
+    // rotInv is false by default
+    private boolean rotInv;
+    private int pointersNum = 1;
 
     /**
      * 
@@ -202,7 +207,7 @@ public class Gesture {
     /**
      * @return The length
      */
-    protected double getLength() {
+    public double getLength() {
         if (lengths == null) {
             calculateLengths();
         }
@@ -382,6 +387,41 @@ public class Gesture {
             translated.add(new TPoint(point.x - reference.x, point.y - reference.y, point.time));
         }
         return translated;
+    }
+
+    /* metodi aggiunti da Roberto */
+    public boolean isRotInv() {
+        return rotInv;
+    }
+
+    public void setRotInv(boolean rotInv) {
+        this.rotInv = rotInv;
+    }
+
+    public int getPointers() {
+        return pointersNum;
+    }
+
+    public void setPointers(int pointers) {
+        this.pointersNum = pointers;
+    }
+
+    public Gesture normalizedGesture(double targetWidth, double targetHeight, int padding) {
+
+        final double zoom = Math.max(targetHeight - padding, targetWidth - padding)
+                / Math.max(getBoundingBox().height, getBoundingBox().width);
+
+        final Gesture normalizedGesture = new Gesture();
+        normalizedGesture.setInfo(getInfo());
+        normalizedGesture.setRotInv(isRotInv());
+        normalizedGesture.setPointers(pointersNum);
+
+        for (int i = 0; i < points.size(); i++) {
+            final TPoint p1 = points.get(i);
+            normalizedGesture.addPoint(new TPoint(p1.getX() * zoom, p1.getY() * zoom, p1.getTime()));
+        }
+
+        return normalizedGesture;
     }
 
 }

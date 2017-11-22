@@ -33,13 +33,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package it.unisa.di.cluelab.polyrec;
 
+import java.io.Serializable;
+
 /**
  * Information related to a gesture.
  * 
  * @author Vittorio
  *
  */
-public class GestureInfo {
+public class GestureInfo implements Serializable {
 
     private int subject;
     private String speed;
@@ -122,6 +124,24 @@ public class GestureInfo {
      */
     public void setNumber(int number) {
         this.number = number;
+    }
+
+    public String toString() {
+        String gestureInfo = "";
+
+        if (getName() != null) {
+            gestureInfo += "name: " + getName();
+        }
+        if (Integer.toString(getNumber()) != null) {
+            gestureInfo += " / number: " + getNumber();
+        }
+        if (Integer.toString(getSubject()) != null) {
+            gestureInfo += " / subject: " + getSubject();
+        }
+        if (getSpeed() != null) {
+            gestureInfo += " / speed: " + getSpeed();
+        }
+        return gestureInfo;
     }
 
 }

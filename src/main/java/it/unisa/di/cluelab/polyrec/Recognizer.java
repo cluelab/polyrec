@@ -33,9 +33,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package it.unisa.di.cluelab.polyrec;
 
+import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -44,8 +45,8 @@ import java.util.Set;
  * @author Vittorio
  *
  */
-public abstract class Recognizer {
-    protected HashMap<String, ArrayList<Polyline>> templates;
+public abstract class Recognizer implements Serializable {
+    protected Map<String, ArrayList<Polyline>> templates;
     protected String method;
 
     /**
@@ -55,8 +56,9 @@ public abstract class Recognizer {
      *            class name
      * @param gesture
      *            the gesture
+     * @return size of list of templates of the class
      */
-    public abstract void addTemplate(String name, Gesture gesture);
+    public abstract int addTemplate(String name, Gesture gesture);
 
     /**
      * @param gesture

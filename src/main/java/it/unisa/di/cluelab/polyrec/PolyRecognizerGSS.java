@@ -36,9 +36,9 @@ package it.unisa.di.cluelab.polyrec;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.TreeMap;
 
 /**
  * The main recognizer class.
@@ -56,14 +56,15 @@ public class PolyRecognizerGSS extends Recognizer {
     protected Integer angle;
     protected Integer angleStep;
     protected final Double phi;
+    // rInvariant is false by default
     private boolean rInvariant;
 
     /**
      * @param rInvariant
      *            Rotation invariant (=true) or sensitive (=false)
      */
-    public PolyRecognizerGSS(boolean rInvariant) {
-        this(rInvariant ? ANGLE_INVARIANT : ANGLE_SENSITIVE, ANGLE_STEP, rInvariant);
+    public PolyRecognizerGSS() {
+        this(ANGLE_SENSITIVE, ANGLE_STEP);
     }
 
     /**
@@ -74,19 +75,18 @@ public class PolyRecognizerGSS extends Recognizer {
      * @param rInvariant
      *            Rotation invariant (=true) or sensitive (=false)
      */
-    public PolyRecognizerGSS(Integer angle, Integer angleStep, boolean rInvariant) {
+    public PolyRecognizerGSS(Integer angle, Integer angleStep) {
         this.angle = angle;
-        this.rInvariant = rInvariant;
         this.setRotationAngle(angleStep);
         this.phi = 0.5f * (-1.0f + Math.sqrt(5.0f));
-        templates = new HashMap<String, ArrayList<Polyline>>();
+        templates = new TreeMap<String, ArrayList<Polyline>>();
         if (GSS) {
             method = "PolyRec-GSS";
         } else {
             method = "PolyRec";
         }
     }
-    
+
     public static Double[] getDprParams() {
         return Arrays.copyOf(DPR_PARAMS, DPR_PARAMS.length);
     }
@@ -97,16 +97,17 @@ public class PolyRecognizerGSS extends Recognizer {
      * @see it.unisa.di.cluelab.polyrec.Recognizer#addTemplate(java.lang.String, it.unisa.di.cluelab.polyrec.Gesture)
      */
     @Override
-    public void addTemplate(String name, Gesture gesture) {
+    public int addTemplate(String name, Gesture gesture) {
         if (!templates.containsKey(name)) {
             templates.put(name, new ArrayList<Polyline>());
         }
         final ArrayList<Polyline> templateClass = templates.get(name);
         final PolylineFinder tpf = new DouglasPeuckerReducer(gesture, PolyRecognizerGSS.DPR_PARAMS);
         templateClass.add(tpf.find());
+        return templateClass.size();
     }
 
-    // TODO CHECKSTYLE:OFF
+    // CHECKSTYLE:OFF
     /*
      * (non-Javadoc)
      * 
@@ -114,68 +115,96 @@ public class PolyRecognizerGSS extends Recognizer {
      */
     @Override
     public synchronized Result recognize(Gesture gesture) {
+        // this.rInvariant = _gesture.isRotInv(); if (this.rInvariant)
+        // this.angle = ANGLE_INVARIANT; else this.angle = ANGLE_SENSITIVE;
 
         final PolylineFinder pf = new DouglasPeuckerReducer(gesture, DPR_PARAMS);
+        // polyline del gesto da riconoscere
         final Polyline u = pf.find();
 
         Double a = Double.POSITIVE_INFINITY;
         String templateName = null;
         Polyline t = null;
 
+        final TreeMap<String, double[]> ranking = new TreeMap<String, double[]>();
+
         for (Entry<String, ArrayList<Polyline>> e : templates.entrySet()) {
             final ArrayList<Polyline> tempTemplates = e.getValue();
+            double classdistance = Double.POSITIVE_INFINITY;
             for (int i = 0; i < tempTemplates.size(); i++) {
+                Double distance = 2.0;
                 t = tempTemplates.get(i);
 
-                final PolylineAligner aligner = new PolylineAligner(u, t);
-                final AbstractMap.SimpleEntry<Polyline, Polyline> polyPair = aligner.align();
+                if (tempTemplates.get(i).getGesture().getPointers() == gesture.getPointers()) {
+                    final PolylineAligner aligner = new PolylineAligner(u, t);
+                    final AbstractMap.SimpleEntry<Polyline, Polyline> polyPair = aligner.align();
 
-                final int addedAngles = aligner.getAddedAngles();
-                final double penalty = 1 + (double) addedAngles / (double) (addedAngles + aligner.getMatches());
-                final Polyline unknown = polyPair.getKey();
-                final Polyline template = polyPair.getValue();
+                    final int addedAngles = aligner.getAddedAngles();
+                    final double penalty = 1 + (double) addedAngles / (double) (addedAngles + aligner.getMatches());
+                    // da riconoscere
+                    final Polyline unknown = polyPair.getKey();
+                    // confrontato con
+                    final Polyline template = polyPair.getValue();
 
-                final List<Vector> vectorsU = unknown.getVectors();
-                if (VERBOSE) {
-                    System.out.println(vectorsU);
-                }
-                final List<Vector> vectorsT = template.getVectors();
-                if (VERBOSE) {
-                    System.out.println(vectorsT);
-                }
-                Double bestDist = null;
-                if (!GSS) {
-                    final double uAngle = unknown.getGesture().getIndicativeAngle(!rInvariant);
-                    if (VERBOSE) {
-                        System.out.println("Indicative angle = " + uAngle);
+                    // aggiunto da roberto
+                    this.rInvariant = template.getGesture().isRotInv();
+                    if (template.getGesture().isRotInv()) {
+                        this.angle = ANGLE_INVARIANT;
                     }
-                    final double tAngle = template.getGesture().getIndicativeAngle(!rInvariant);
-                    if (VERBOSE) {
-                        System.out.println("Indicative angleT = " + tAngle);
-                    }
-                    bestDist = getDistanceAtAngle(vectorsU, vectorsT, -uAngle, -tAngle);
-                    if (VERBOSE) {
-                        System.out.println("Distance at = " + (-uAngle) + "; dist = " + bestDist);
-                    }
-                } else {
-                    bestDist = getDistanceAtBestAngle(unknown, template);
-                }
-                final Double distance = penalty * bestDist;
+                    // ------------------
 
+                    final List<Vector> vectorsU = unknown.getVectors();
+                    if (VERBOSE) {
+                        System.out.println(vectorsU);
+                    }
+                    final List<Vector> vectorsT = template.getVectors();
+                    if (VERBOSE) {
+                        System.out.println(vectorsT);
+                    }
+                    Double bestDist = null;
+                    if (!GSS) {
+                        final double uAngle = unknown.getGesture().getIndicativeAngle(!unknown.getGesture().isRotInv());
+                        if (VERBOSE) {
+                            System.out.println("Indicative angle = " + uAngle);
+                        }
+                        final double tAngle = template.getGesture()
+                                .getIndicativeAngle(!template.getGesture().isRotInv());
+                        if (VERBOSE) {
+                            System.out.println("Indicative angleT = " + tAngle);
+                        }
+                        bestDist = getDistanceAtAngle(vectorsU, vectorsT, -uAngle, -tAngle);
+                        if (VERBOSE) {
+                            System.out.println("Distance at = " + (-uAngle) + "; dist = " + bestDist);
+                        }
+                    } else {
+                        bestDist = getDistanceAtBestAngle(unknown, template);
+                    }
+                    distance = penalty * bestDist;
+                }
+
+                if (distance < classdistance) {
+                    classdistance = distance;
+                }
                 if (distance < a) {
                     a = distance;
                     templateName = e.getKey();
                 }
+            }
+
+            if (classdistance != Double.POSITIVE_INFINITY) {
+                final Double classscore = (2.0f - classdistance) / 2;
+
+                ranking.put(e.getKey(), new double[] {classdistance, Math.round(classscore * 10000) / 100.});
             }
         }
 
         if (templateName != null) {
             final Double score = (2.0f - a) / 2;
 
-            return new Result(templateName, score);
+            return new Result(templateName, score, ranking);
         }
 
-        System.out.println(" null distance ");
+        // System.out.println(" null distance ");
         return null;
     }
     // CHECKSTYLE:ON
@@ -295,4 +324,158 @@ public class PolyRecognizerGSS extends Recognizer {
         }
     }
     // CHECKSTYLE:ON
+
+    // TODO CHECKSTYLE:OFF
+    /**
+     * Aggiunto da Roberto B.
+     * 
+     * Verifica similarità tra un template di una classe e i template di tutte le altre classi
+     * 
+     * @param u
+     *            Template da veriticare
+     * @param className
+     *            Classe del template da verificare
+     * @param scorelimit
+     *            Score al di sopra del cui i template sono troppo simili
+     * @return
+     */
+    @edu.umd.cs.findbugs.annotations.SuppressFBWarnings
+    public synchronized ArrayList<Result> verifyTemplate(Polyline u, String className, int scorelimit) {
+        // this.rInvariant = _gesture.isRotInv(); if (this.rInvariant)
+        // this.angle = ANGLE_INVARIANT; else this.angle = ANGLE_SENSITIVE;
+
+        // PolylineFinder pf = new DouglasPeuckerReducer(_gesture, params);
+        // Polyline u = pf.find();
+
+        Double a = Double.POSITIVE_INFINITY;
+        String templateName = null;
+        Polyline t = null;
+
+        ArrayList<Result> results = new ArrayList<Result>();
+
+        // per tutte le classi
+        for (String key : templates.keySet()) {
+            // classe diversa da quella del template da controllare
+            if (key != className) {
+                ArrayList<Polyline> tempTemplates = templates.get(key);
+                for (int i = 0; i < tempTemplates.size(); i++) {
+                    t = tempTemplates.get(i);
+
+                    PolylineAligner aligner = new PolylineAligner(u, t);
+                    AbstractMap.SimpleEntry<Polyline, Polyline> polyPair = aligner.align();
+
+                    int addedAngles = aligner.getAddedAngles();
+                    double penalty = 1 + (double) addedAngles / (double) (addedAngles + aligner.getMatches());
+                    Polyline unknown = polyPair.getKey();// da riconoscere
+                    Polyline template = polyPair.getValue();// confrontato con
+
+                    // aggiunto da roberto
+                    if (template.getGesture().isRotInv() || unknown.getGesture().isRotInv()) {
+                        this.rInvariant = true;
+                        this.angle = ANGLE_INVARIANT;
+                    }
+                    // ------------------
+
+                    List<Vector> vectorsU = unknown.getVectors();
+                    if (VERBOSE)
+                        System.out.println(vectorsU);
+                    List<Vector> vectorsT = template.getVectors();
+                    if (VERBOSE)
+                        System.out.println(vectorsT);
+                    Double bestDist = null;
+                    if (!GSS) {
+                        double uAngle = unknown.getGesture().getIndicativeAngle(!unknown.getGesture().isRotInv());
+                        if (VERBOSE)
+                            System.out.println("Indicative angle = " + uAngle);
+                        double tAngle = template.getGesture().getIndicativeAngle(!template.getGesture().isRotInv());
+                        if (VERBOSE)
+                            System.out.println("Indicative angleT = " + tAngle);
+                        bestDist = getDistanceAtAngle(vectorsU, vectorsT, -uAngle, -tAngle);
+                        if (VERBOSE)
+                            System.out.println("Distance at = " + (-uAngle) + "; dist = " + bestDist);
+                    } else
+                        bestDist = getDistanceAtBestAngle(unknown, template);
+                    Double distance = penalty * bestDist;
+                    if (VERBOSE)
+                        System.out.println("Confronto con Gesture " + key + " ROTINV:"
+                                + template.getGesture().isRotInv() + " SCORE:" + (2.0f - distance) / 2);
+
+                    Double score = (2.0f - distance) / 2;
+                    Result result = new Result(key, i, score);
+
+                    // template troppo simili
+                    if (result.getScore() > scorelimit) {
+                        results.add(result);
+
+                    }
+                    if (VERBOSE)
+                        System.out.println(
+                                "Template troppo simile a polyline " + i + " ROTINV:" + template.getGesture().isRotInv()
+                                        + " della classe " + key + "  (SCORE:" + (2.0f - distance) / 2 + ")");
+                    if (distance < a) {
+                        a = distance;
+                        templateName = key;
+                    }
+
+                }
+            }
+
+        }
+
+        return results;
+    }
+
+    /**
+     * Aggiunta di Roberto B.
+     * 
+     * Confronto tra due template
+     * 
+     * @param u
+     *            Primo dei template da confrontare
+     * @param t
+     *            Secondo dei template da confrontare
+     * @return Distanza tra i due template
+     */
+    @edu.umd.cs.findbugs.annotations.SuppressFBWarnings
+    public synchronized Double checkTemplate(Polyline u, Polyline t) {
+        PolylineAligner aligner = new PolylineAligner(u, t);
+        AbstractMap.SimpleEntry<Polyline, Polyline> polyPair = aligner.align();
+
+        int addedAngles = aligner.getAddedAngles();
+        double penalty = 1 + (double) addedAngles / (double) (addedAngles + aligner.getMatches());
+        Polyline unknown = polyPair.getKey();// da riconoscere
+        Polyline template = polyPair.getValue();// confrontato con
+
+        // modifica roberto
+
+        if (template.getGesture().isRotInv() || unknown.getGesture().isRotInv()) {
+            this.rInvariant = true;
+            this.angle = ANGLE_INVARIANT;
+        }
+        // ------------------
+
+        List<Vector> vectorsU = unknown.getVectors();
+        if (VERBOSE)
+            System.out.println(vectorsU);
+        List<Vector> vectorsT = template.getVectors();
+        if (VERBOSE)
+            System.out.println(vectorsT);
+        Double bestDist = null;
+        if (!GSS) {
+            double uAngle = unknown.getGesture().getIndicativeAngle(!unknown.getGesture().isRotInv());
+            if (VERBOSE)
+                System.out.println("Indicative angle = " + uAngle);
+            double tAngle = template.getGesture().getIndicativeAngle(!template.getGesture().isRotInv());
+            if (VERBOSE)
+                System.out.println("Indicative angleT = " + tAngle);
+            bestDist = getDistanceAtAngle(vectorsU, vectorsT, -uAngle, -tAngle);
+            if (VERBOSE)
+                System.out.println("Distance at = " + (-uAngle) + "; dist = " + bestDist);
+        } else
+            bestDist = getDistanceAtBestAngle(unknown, template);
+        Double distance = penalty * bestDist;
+        return distance;
+
+    }
+
 }

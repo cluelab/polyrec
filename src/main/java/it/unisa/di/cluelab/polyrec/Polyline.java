@@ -33,6 +33,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package it.unisa.di.cluelab.polyrec;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 
 import java.util.List;
@@ -44,7 +45,7 @@ import java.util.ListIterator;
  * @author Vittorio
  *
  */
-public class Polyline {
+public class Polyline implements Serializable {
     private Gesture gesture;
     private List<Integer> indexes;
     private List<Double> lengths;
