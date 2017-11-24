@@ -28,14 +28,14 @@ Maven:
 <dependency>
   <groupId>it.unisa.di.cluelab</groupId>
   <artifactId>polyrec</artifactId>
-  <version>0.2.0</version>
+  <version>0.2.1</version>
 </dependency>
 ```
 
 Gradle:
 
 ```groovy
-compile 'it.unisa.di.cluelab:polyrec:0.2.0'
+compile 'it.unisa.di.cluelab:polyrec:0.2.1'
 ```
 
 ##### Snapshots
@@ -50,7 +50,7 @@ You can use snapshot versions through [JitPack](https://jitpack.io):
 
 ```java
 // recognizer setup
-Recognizer recognizer = new PolyRecognizerGSS(true);
+Recognizer recognizer = new PolyRecognizerGSS();
 Gesture trCw = new Gesture();
 trCw.addPoint(new TPoint(0, 0, 0));
 trCw.addPoint(new TPoint(100, 0, 0));
