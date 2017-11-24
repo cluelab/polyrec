@@ -47,6 +47,7 @@ import java.util.ListIterator;
  *
  */
 public class Gesture implements Serializable {
+    private static final long serialVersionUID = 6379977016996208165L;
     // TODO CHECKSTYLE:OFF
     ArrayList<TPoint> points;
     // CHECKSTYLE:ON
@@ -404,24 +405,6 @@ public class Gesture implements Serializable {
 
     public void setPointers(int pointers) {
         this.pointersNum = pointers;
-    }
-
-    public Gesture normalizedGesture(double targetWidth, double targetHeight, int padding) {
-
-        final double zoom = Math.max(targetHeight - padding, targetWidth - padding)
-                / Math.max(getBoundingBox().height, getBoundingBox().width);
-
-        final Gesture normalizedGesture = new Gesture();
-        normalizedGesture.setInfo(getInfo());
-        normalizedGesture.setRotInv(isRotInv());
-        normalizedGesture.setPointers(pointersNum);
-
-        for (int i = 0; i < points.size(); i++) {
-            final TPoint p1 = points.get(i);
-            normalizedGesture.addPoint(new TPoint(p1.getX() * zoom, p1.getY() * zoom, p1.getTime()));
-        }
-
-        return normalizedGesture;
     }
 
 }

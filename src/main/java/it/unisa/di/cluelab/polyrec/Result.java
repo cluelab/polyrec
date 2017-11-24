@@ -33,19 +33,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package it.unisa.di.cluelab.polyrec;
 
-import java.awt.Color;
-import java.awt.Component;
-import java.util.ArrayList;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.TreeMap;
-
-import javax.swing.DefaultRowSorter;
-import javax.swing.JTable;
-import javax.swing.RowSorter;
-import javax.swing.SortOrder;
-import javax.swing.table.DefaultTableCellRenderer;
-
 /**
  * Class representing the result of gesture recognition.
  * 
@@ -56,26 +43,9 @@ public class Result {
 
     private String name;
     private Double score;
-    // aggiunto da roberto
-    private int templateIndex = -1;
-    private TreeMap<String, double[]> ranking = new TreeMap<String, double[]>();
-
-    public Result(String name, Double score, TreeMap<String, double[]> ranking) {
-        this.name = name;
-        this.score = Math.round(score * 10000) / 100.;
-        this.ranking = ranking;
-    }
 
     protected Result(String name, Double score) {
         this.name = name;
-        this.score = Math.round(score * 10000) / 100.;
-        this.templateIndex = -1;
-    }
-
-    // aggiunto da roberto
-    protected Result(String name, int templateIndex, Double score) {
-        this.name = name;
-        this.templateIndex = templateIndex;
         this.score = Math.round(score * 10000) / 100.;
     }
 
@@ -91,109 +61,6 @@ public class Result {
      */
     public Double getScore() {
         return this.score;
-    }
-
-    public int getTemplateIndex() {
-        return this.templateIndex;
-    }
-
-    // aggiunto da roberto
-    public String toString() {
-        return (this.templateIndex >= 0 ? "Template " + (this.templateIndex) + " of Class " + this.name.toUpperCase()
-                : "Class " + this.name) + " (score: " + this.score + ")";
-    }
-
-    public TreeMap<String, double[]> getRanking() {
-        return this.ranking;
-    }
-
-    // TODO CHECKSTYLE:OFF
-
-    public JTable getRankingTable() {
-
-        Set<Entry<String, double[]>> entries = this.ranking.entrySet();
-
-        // String[] columnHeaders = {"<html><font color='white' >CLASS</font></html>", "<html><font color='white'
-        // >DISTANCE</font></html>", "<html><font color='white' >SCORE</font></html>"};
-        String[] columnHeaders = { "CLASS", "DISTANCE", "SCORE" };
-
-        String[][] rowData = new String[entries.size()][columnHeaders.length];
-
-        int i = 0;
-        for (Entry<String, double[]> e : entries) {
-
-            rowData[i][0] = e.getKey();
-
-            rowData[i][1] = String.valueOf(round(e.getValue()[0], 5));
-            rowData[i][2] = String.valueOf(round(e.getValue()[1], 5));
-            i++;
-        }
-        JTable table = new JTable(rowData, columnHeaders);
-
-        table.setEnabled(false);
-
-        // headers
-        // table.getTableHeader().setBackground(Color.gray);
-        // table.getTableHeader().setBorder(BorderFactory.createLineBorder(Color.BLACK));
-        // table.getTableHeader().setOpaque(false);
-
-        // sorting
-        table.setAutoCreateRowSorter(true);
-        DefaultRowSorter sorter = ((DefaultRowSorter) table.getRowSorter());
-        ArrayList list = new ArrayList();
-
-        list.add(new RowSorter.SortKey(2, SortOrder.DESCENDING));
-        sorter.setSortKeys(list);
-        sorter.sort();
-
-        // column alignment
-        // DefaultTableCellRenderer rightRenderer = new DefaultTableCellRenderer();
-        // rightRenderer.setHorizontalAlignment(SwingConstants.RIGHT);
-        // table.getColumnModel().getColumn(1).setCellRenderer(rightRenderer);
-        // table.getColumnModel().getColumn(2).setCellRenderer(rightRenderer);
-        // ((JLabel) table.getTableHeader().getDefaultRenderer()).setHorizontalAlignment(JLabel.CENTER);
-
-        table.getColumn(table.getColumnName(0)).setCellRenderer(new DefaultTableCellRenderer() {
-            @Override
-            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
-                    boolean hasFocus, int row, int column) {
-                setText(value.toString());
-                setBackground(new Color(00, 00, 00, 10));
-                return this;
-            }
-        });
-
-        // table.getColumn(table.getColumnName(2)).setCellRenderer(
-        // new DefaultTableCellRenderer() {
-        // @Override
-        // public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean
-        // hasFocus, int row, int column) {
-        // setText(value.toString());
-        // System.out.println("classname "+classname+" name "+name+" row"+row+" col"+column);
-        // System.out.println(classname.equals(name));
-        //
-        //
-        // Double scorevalue = Math.round(Double.parseDouble(value.toString()) * 10000) / 100.;
-        //
-        // System.out.println("valore "+scorevalue+" setting "+
-        // java.lang.Double.parseDouble(Settings.applicationProps.getProperty("scorelimit")));
-        // System.out.println(scorevalue > Double.parseDouble(Settings.applicationProps.getProperty("scorelimit")));
-        // if (!classname.equals(name) && scorevalue >
-        // Double.parseDouble(Settings.applicationProps.getProperty("scorelimit")))
-        // setBackground(Color.red);
-        // return this;
-        // }
-        // }
-        // );
-
-        return table;
-
-    }
-
-    // round 'n' to 'd' decimals
-    private double round(double n, double d) {
-        d = Math.pow(10, d);
-        return Math.round(n * d) / d;
     }
 
 }

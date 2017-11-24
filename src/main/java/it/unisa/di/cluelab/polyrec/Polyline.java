@@ -46,6 +46,8 @@ import java.util.ListIterator;
  *
  */
 public class Polyline implements Serializable {
+    private static final long serialVersionUID = 3012679946809758003L;
+
     private Gesture gesture;
     private List<Integer> indexes;
     private List<Double> lengths;

@@ -42,6 +42,7 @@ import java.io.Serializable;
  *
  */
 public class GestureInfo implements Serializable {
+    private static final long serialVersionUID = 4574723576746516290L;
 
     private int subject;
     private String speed;
