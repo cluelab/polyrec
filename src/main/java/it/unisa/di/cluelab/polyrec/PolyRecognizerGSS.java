@@ -33,12 +33,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package it.unisa.di.cluelab.polyrec;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map.Entry;
+import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * The main recognizer class.
@@ -49,44 +55,44 @@ import java.util.Map.Entry;
 public class PolyRecognizerGSS extends Recognizer {
     private static final Double[] DPR_PARAMS = new Double[] {26d, 22d};
     private static final boolean GSS = true;
-    private static final Integer ANGLE_INVARIANT = 45;
-    private static final Integer ANGLE_SENSITIVE = 25;
+    private static final Integer ANGLE_ROTATION_INVARIANT = 45;
+    private static final Integer ANGLE_ROTATION_SENSITIVE = 25;
     private static final Integer ANGLE_STEP = 2;
     private static final boolean VERBOSE = false;
-    protected Integer angle;
+    protected Integer angleRotInv;
+    protected Integer angleRotSen;
     protected Integer angleStep;
     protected final Double phi;
-    private boolean rInvariant;
 
     /**
      * @param rInvariant
      *            Rotation invariant (=true) or sensitive (=false)
      */
-    public PolyRecognizerGSS(boolean rInvariant) {
-        this(rInvariant ? ANGLE_INVARIANT : ANGLE_SENSITIVE, ANGLE_STEP, rInvariant);
+    public PolyRecognizerGSS() {
+        this(ANGLE_ROTATION_SENSITIVE, ANGLE_ROTATION_INVARIANT, ANGLE_STEP);
     }
 
     /**
-     * @param angle
-     *            Angle for Golden Section Search
+     * @param angleRotationSensitive
+     *            Angle for Golden Section Search (rotation sensitive gestures)
+     * @param angleRotationInvariant
+     *            Angle for Golden Section Search (rotation invariant gestures)
      * @param angleStep
      *            Angle step for Golden Section Search
-     * @param rInvariant
-     *            Rotation invariant (=true) or sensitive (=false)
      */
-    public PolyRecognizerGSS(Integer angle, Integer angleStep, boolean rInvariant) {
-        this.angle = angle;
-        this.rInvariant = rInvariant;
+    public PolyRecognizerGSS(Integer angleRotationSensitive, Integer angleRotationInvariant, Integer angleStep) {
+        this.angleRotSen = angleRotationSensitive;
+        this.angleRotInv = angleRotationInvariant;
         this.setRotationAngle(angleStep);
         this.phi = 0.5f * (-1.0f + Math.sqrt(5.0f));
-        templates = new HashMap<String, ArrayList<Polyline>>();
+        templates = new TreeMap<String, ArrayList<Polyline>>();
         if (GSS) {
             method = "PolyRec-GSS";
         } else {
             method = "PolyRec";
         }
     }
-    
+
     public static Double[] getDprParams() {
         return Arrays.copyOf(DPR_PARAMS, DPR_PARAMS.length);
     }
@@ -97,13 +103,14 @@ public class PolyRecognizerGSS extends Recognizer {
      * @see it.unisa.di.cluelab.polyrec.Recognizer#addTemplate(java.lang.String, it.unisa.di.cluelab.polyrec.Gesture)
      */
     @Override
-    public void addTemplate(String name, Gesture gesture) {
+    public int addTemplate(String name, Gesture gesture) {
         if (!templates.containsKey(name)) {
             templates.put(name, new ArrayList<Polyline>());
         }
         final ArrayList<Polyline> templateClass = templates.get(name);
         final PolylineFinder tpf = new DouglasPeuckerReducer(gesture, PolyRecognizerGSS.DPR_PARAMS);
         templateClass.add(tpf.find());
+        return templateClass.size();
     }
 
     // TODO CHECKSTYLE:OFF
@@ -114,57 +121,62 @@ public class PolyRecognizerGSS extends Recognizer {
      */
     @Override
     public synchronized Result recognize(Gesture gesture) {
-
         final PolylineFinder pf = new DouglasPeuckerReducer(gesture, DPR_PARAMS);
+        // polyline del gesto da riconoscere
         final Polyline u = pf.find();
 
         Double a = Double.POSITIVE_INFINITY;
         String templateName = null;
         Polyline t = null;
 
-        for (Entry<String, ArrayList<Polyline>> e : templates.entrySet()) {
+        for (Map.Entry<String, ArrayList<Polyline>> e : templates.entrySet()) {
             final ArrayList<Polyline> tempTemplates = e.getValue();
             for (int i = 0; i < tempTemplates.size(); i++) {
                 t = tempTemplates.get(i);
 
-                final PolylineAligner aligner = new PolylineAligner(u, t);
-                final AbstractMap.SimpleEntry<Polyline, Polyline> polyPair = aligner.align();
+                if (t.getGesture().getPointers() == gesture.getPointers()) {
+                    final PolylineAligner aligner = new PolylineAligner(u, t);
+                    final AbstractMap.SimpleEntry<Polyline, Polyline> polyPair = aligner.align();
 
-                final int addedAngles = aligner.getAddedAngles();
-                final double penalty = 1 + (double) addedAngles / (double) (addedAngles + aligner.getMatches());
-                final Polyline unknown = polyPair.getKey();
-                final Polyline template = polyPair.getValue();
+                    final int addedAngles = aligner.getAddedAngles();
+                    final double penalty = 1 + (double) addedAngles / (double) (addedAngles + aligner.getMatches());
+                    // da riconoscere
+                    final Polyline unknown = polyPair.getKey();
+                    // confrontato con
+                    final Polyline template = polyPair.getValue();
 
-                final List<Vector> vectorsU = unknown.getVectors();
-                if (VERBOSE) {
-                    System.out.println(vectorsU);
-                }
-                final List<Vector> vectorsT = template.getVectors();
-                if (VERBOSE) {
-                    System.out.println(vectorsT);
-                }
-                Double bestDist = null;
-                if (!GSS) {
-                    final double uAngle = unknown.getGesture().getIndicativeAngle(!rInvariant);
+                    final List<Vector> vectorsU = unknown.getVectors();
                     if (VERBOSE) {
-                        System.out.println("Indicative angle = " + uAngle);
+                        System.out.println(vectorsU);
                     }
-                    final double tAngle = template.getGesture().getIndicativeAngle(!rInvariant);
+                    final List<Vector> vectorsT = template.getVectors();
                     if (VERBOSE) {
-                        System.out.println("Indicative angleT = " + tAngle);
+                        System.out.println(vectorsT);
                     }
-                    bestDist = getDistanceAtAngle(vectorsU, vectorsT, -uAngle, -tAngle);
-                    if (VERBOSE) {
-                        System.out.println("Distance at = " + (-uAngle) + "; dist = " + bestDist);
+                    Double bestDist = null;
+                    if (!GSS) {
+                        final double uAngle = unknown.getGesture().getIndicativeAngle(!unknown.getGesture().isRotInv());
+                        if (VERBOSE) {
+                            System.out.println("Indicative angle = " + uAngle);
+                        }
+                        final double tAngle = template.getGesture()
+                                .getIndicativeAngle(!template.getGesture().isRotInv());
+                        if (VERBOSE) {
+                            System.out.println("Indicative angleT = " + tAngle);
+                        }
+                        bestDist = getDistanceAtAngle(vectorsU, vectorsT, -uAngle, -tAngle);
+                        if (VERBOSE) {
+                            System.out.println("Distance at = " + (-uAngle) + "; dist = " + bestDist);
+                        }
+                    } else {
+                        bestDist = getDistanceAtBestAngle(unknown, template, template.getGesture().isRotInv());
                     }
-                } else {
-                    bestDist = getDistanceAtBestAngle(unknown, template);
-                }
-                final Double distance = penalty * bestDist;
+                    final Double distance = penalty * bestDist;
 
-                if (distance < a) {
-                    a = distance;
-                    templateName = e.getKey();
+                    if (distance < a) {
+                        a = distance;
+                        templateName = e.getKey();
+                    }
                 }
             }
         }
@@ -175,7 +187,9 @@ public class PolyRecognizerGSS extends Recognizer {
             return new Result(templateName, score);
         }
 
-        System.out.println(" null distance ");
+        if (VERBOSE) {
+            System.out.println(" null distance ");
+        }
         return null;
     }
     // CHECKSTYLE:ON
@@ -223,17 +237,71 @@ public class PolyRecognizerGSS extends Recognizer {
         return this.angleStep;
     }
 
+    /**
+     * Load gestures from a .pgs file. Any existing gestures will be removed.
+     * 
+     * @param file
+     *            The file to be loaded
+     */
+    public void loadTemplatesPGS(File file) throws IOException {
+        loadTemplatesPGS(file, true);
+    }
+
+    /**
+     * Load template gestures from a .pgs file.
+     * 
+     * @param file
+     *            The file to be loaded
+     * @param removeExistent
+     *            whether to remove any existing gesture
+     */
+    @SuppressWarnings("unchecked")
+    public void loadTemplatesPGS(File file, boolean removeExistent) throws IOException {
+        final Map<String, ArrayList<Polyline>> mapFromFile;
+        final ObjectInputStream objectinputstream = new ObjectInputStream(new FileInputStream(file));
+        try {
+            mapFromFile = (Map<String, ArrayList<Polyline>>) objectinputstream.readObject();
+        } catch (ClassNotFoundException e1) {
+            objectinputstream.close();
+            throw new RuntimeException(e1);
+        }
+        objectinputstream.close();
+        if (removeExistent) {
+            this.templates = mapFromFile;
+        } else {
+            for (Map.Entry<String, ArrayList<Polyline>> e : mapFromFile.entrySet()) {
+                final ArrayList<Polyline> cur = templates.get(e.getKey());
+                if (cur == null) {
+                    templates.put(e.getKey(), e.getValue());
+                } else {
+                    cur.addAll(e.getValue());
+                }
+            }
+        }
+    }
+
+    /**
+     * Save the template gestures as a .psg binary file.
+     */
+    public void saveTemplatesPGS(File file) throws IOException {
+        final ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(file));
+        oos.writeObject(templates);
+        oos.close();
+    }
+
     // TODO CHECKSTYLE:OFF
     /**
      * @param u
      *            First polyline
      * @param t
      *            Second polyline
+     * @param rInvariant
      * @return The distance at the best angle
      */
-    public Double getDistanceAtBestAngle(Polyline u, Polyline t) {
-        Double a = Math.toRadians(-this.angle);
-        Double b = Math.toRadians(this.angle);
+    public Double getDistanceAtBestAngle(Polyline u, Polyline t, boolean rInvariant) {
+        double angle = rInvariant ? this.angleRotInv : this.angleRotSen;
+        Double a = Math.toRadians(-angle);
+        Double b = Math.toRadians(angle);
         final Double treshold = Math.toRadians(this.angleStep);
 
         double uAngle = u.getGesture().getIndicativeAngle(!rInvariant);
@@ -295,4 +363,5 @@ public class PolyRecognizerGSS extends Recognizer {
         }
     }
     // CHECKSTYLE:ON
+
 }

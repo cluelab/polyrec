@@ -208,7 +208,7 @@ public class NeedlemanWunsch {
 
     private double similarity(int i, int j) {
         // TODO: le funzioni vengono chiamate con parametro 0 (i-1=0, j-1=0). Probabilmente ha senso per
-        // getLengthAtAngle. Per getSlopeChange ha poco senso, ma probabilmente � ininfluente
+        // getLengthAtAngle. Per getSlopeChange ha poco senso, ma probabilmente è ininfluente
         final double weight = 1D - (BALANCE * Math.abs(mSeqA.getLengthAtAngle(i - 1) - mSeqB.getLengthAtAngle(j - 1))
                 + (1 - BALANCE) * angleDiff(mSeqA.getSlopeChange(i - 1), mSeqB.getSlopeChange(j - 1)));
         return weight;
