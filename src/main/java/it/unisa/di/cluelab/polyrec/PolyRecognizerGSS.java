@@ -65,8 +65,7 @@ public class PolyRecognizerGSS extends Recognizer {
     protected final Double phi;
 
     /**
-     * @param rInvariant
-     *            Rotation invariant (=true) or sensitive (=false)
+     * Build recognizer with default Golden Section Search parameters.
      */
     public PolyRecognizerGSS() {
         this(ANGLE_ROTATION_SENSITIVE, ANGLE_ROTATION_INVARIANT, ANGLE_STEP);
