@@ -33,7 +33,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package it.unisa.di.cluelab.polyrec;
 
-import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -42,7 +44,9 @@ import java.util.Set;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
@@ -62,6 +66,7 @@ import org.w3c.dom.NodeList;
  * @author Vittorio
  *
  */
+@SuppressWarnings("checkstyle:classfanoutcomplexity")
 public abstract class Recognizer {
     private static final String ELEM_ROOT = "set";
     private static final String ELEM_CLASS = "class";
@@ -144,28 +149,32 @@ public abstract class Recognizer {
     }
 
     /**
-     * Load gestures from a .xml file. Any existing gestures will be removed.
+     * Load template gestures in .xml format. Any existing gestures will be removed.
      * 
-     * @param file
-     *            The file to be loaded
+     * @param is
+     *            InputStream of the file to be loaded
+     * @throws IOException
+     *             if an I/O error occurs.
      */
-    public void loadTemplatesXML(File file) throws Exception {
-        loadTemplatesXML(file, true);
+    public void loadTemplatesXML(InputStream is) throws Exception {
+        loadTemplatesXML(is, true);
     }
 
     /**
-     * Load template gestures from a .xml file.
+     * Load template gestures in .xml format.
      * 
-     * @param file
-     *            The file to be loaded
+     * @param is
+     *            InputStream containing the content to be parsed.
      * @param removeExistent
      *            whether to remove any existing gesture
+     * @throws IOException
+     *             if an I/O error occurs.
      */
-    public void loadTemplatesXML(File file, boolean removeExistent) throws Exception {
+    public void loadTemplatesXML(InputStream is, boolean removeExistent) throws Exception {
         final DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
         final DocumentBuilder db = dbf.newDocumentBuilder();
 
-        final Document doc = db.parse(file);
+        final Document doc = db.parse(is);
 
         final XPathFactory xPathfactory = XPathFactory.newInstance();
         final XPath xpath = xPathfactory.newXPath();
@@ -214,10 +223,20 @@ public abstract class Recognizer {
     }
 
     /**
-     * Save the template gestures as a .psg binary file.
+     * Save the template gestures in .xml format.
+     * 
+     * @param os
+     *            Destination stream.
+     * @throws IOException
+     *             if an I/O error occurs.
      */
-    public void saveTemplatesXML(File file) throws Exception {
-        final DocumentBuilder docBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+    public void saveTemplatesXML(OutputStream os) throws IOException {
+        final DocumentBuilder docBuilder;
+        try {
+            docBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+        } catch (ParserConfigurationException e) {
+            throw new RuntimeException(e);
+        }
 
         // root elements
         final Document doc = docBuilder.newDocument();
@@ -246,11 +265,14 @@ public abstract class Recognizer {
             rootElement.appendChild(classElement);
         }
 
-        final StreamResult result = new StreamResult(file);
-
-        final Transformer transformer = TransformerFactory.newInstance().newTransformer();
-        final DOMSource source = new DOMSource(doc);
-        transformer.transform(source, result);
+        final StreamResult result = new StreamResult(os);
+        try {
+            final Transformer transformer = TransformerFactory.newInstance().newTransformer();
+            final DOMSource source = new DOMSource(doc);
+            transformer.transform(source, result);
+        } catch (TransformerException e) {
+            throw new RuntimeException(e);
+        }
     }
 
 }

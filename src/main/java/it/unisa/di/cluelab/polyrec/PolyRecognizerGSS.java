@@ -33,12 +33,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package it.unisa.di.cluelab.polyrec;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -245,27 +244,31 @@ public class PolyRecognizerGSS extends Recognizer {
     }
 
     /**
-     * Load gestures from a .pgs file. Any existing gestures will be removed.
+     * Load gestures in .pgs format. Any existing gestures will be removed.
      * 
-     * @param file
-     *            The file to be loaded
+     * @param is
+     *            InputStream containing the .psg data.
+     * @throws IOException
+     *             if an I/O error occurs.
      */
-    public void loadTemplatesPGS(File file) throws IOException {
-        loadTemplatesPGS(file, true);
+    public void loadTemplatesPGS(InputStream is) throws IOException {
+        loadTemplatesPGS(is, true);
     }
 
     /**
-     * Load template gestures from a .pgs file.
+     * Load template gestures in .pgs format.
      * 
-     * @param file
-     *            The file to be loaded
+     * @param is
+     *            InputStream containing the .psg data.
      * @param removeExistent
      *            whether to remove any existing gesture
+     * @throws IOException
+     *             if an I/O error occurs.
      */
     @SuppressWarnings("unchecked")
-    public void loadTemplatesPGS(File file, boolean removeExistent) throws IOException {
+    public void loadTemplatesPGS(InputStream is, boolean removeExistent) throws IOException {
         final Map<String, ArrayList<Polyline>> mapFromFile;
-        final ObjectInputStream objectinputstream = new ObjectInputStream(new FileInputStream(file));
+        final ObjectInputStream objectinputstream = new ObjectInputStream(is);
         try {
             mapFromFile = (Map<String, ArrayList<Polyline>>) objectinputstream.readObject();
         } catch (ClassNotFoundException e1) {
@@ -288,10 +291,15 @@ public class PolyRecognizerGSS extends Recognizer {
     }
 
     /**
-     * Save the template gestures as a .psg binary file.
+     * Save the template gestures in .psg format.
+     * 
+     * @param os
+     *            Destination stream.
+     * @throws IOException
+     *             if an I/O error occurs.
      */
-    public void saveTemplatesPGS(File file) throws IOException {
-        final ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(file));
+    public void saveTemplatesPGS(OutputStream os) throws IOException {
+        final ObjectOutputStream oos = new ObjectOutputStream(os);
         oos.writeObject(templates);
         oos.close();
     }
@@ -303,6 +311,7 @@ public class PolyRecognizerGSS extends Recognizer {
      * @param t
      *            Second polyline
      * @param rInvariant
+     *            Whether to use rotation invariant mode
      * @return The distance at the best angle
      */
     public Double getDistanceAtBestAngle(Polyline u, Polyline t, boolean rInvariant) {
