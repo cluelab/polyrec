@@ -103,12 +103,17 @@ public class PolyRecognizerGSS extends Recognizer {
      */
     @Override
     public int addTemplate(String name, Gesture gesture) {
-        if (!templates.containsKey(name)) {
-            templates.put(name, new ArrayList<Polyline>());
-        }
-        final ArrayList<Polyline> templateClass = templates.get(name);
         final PolylineFinder tpf = new DouglasPeuckerReducer(gesture, PolyRecognizerGSS.DPR_PARAMS);
-        templateClass.add(tpf.find());
+        final Polyline pl = tpf.find();
+        if (pl.getIndexes().isEmpty()) {
+            throw new IllegalArgumentException("Illegal gesture.");
+        }
+        ArrayList<Polyline> templateClass = templates.get(name);
+        if (templateClass == null) {
+            templateClass = new ArrayList<Polyline>();
+            templates.put(name, templateClass);
+        }
+        templateClass.add(pl);
         return templateClass.size();
     }
 
@@ -123,6 +128,9 @@ public class PolyRecognizerGSS extends Recognizer {
         final PolylineFinder pf = new DouglasPeuckerReducer(gesture, DPR_PARAMS);
         // polyline del gesto da riconoscere
         final Polyline u = pf.find();
+        if (u.getIndexes().isEmpty()) {
+            return null;
+        }
 
         Double a = Double.POSITIVE_INFINITY;
         String templateName = null;
