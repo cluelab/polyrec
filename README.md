@@ -1,6 +1,7 @@
 # polyrec
 
 [![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
+[![javadoc](https://img.shields.io/badge/javadoc-0.2.2-brightgreen.svg)](https://jitpack.io/com/github/cluelab/polyrec/0.2.2/javadoc/)
 [![Build Status](http://img.shields.io/travis/cluelab/polyrec.svg?style=flat&branch=master)](https://travis-ci.org/cluelab/polyrec)
 [![Coverage Status](https://img.shields.io/coveralls/cluelab/polyrec.svg?style=flat)](https://coveralls.io/r/cluelab/polyrec?branch=master)
 
@@ -20,7 +21,7 @@ http://dl.acm.org/citation.cfm?id=2702505
 ### Setup
  
 Releases are published to [bintray jcenter](https://bintray.com/cluelab/polyrec/polyrec/)
-[![JCenter](https://img.shields.io/bintray/v/cluelab/polyrec/polyrec.svg?label=jcenter)](https://bintray.com/cluelab/polyrec/polyrec/_latestVersion)
+[![JCenter](https://api.bintray.com/packages/cluelab/polyrec/polyrec/images/download.svg)](https://bintray.com/cluelab/polyrec/polyrec/_latestVersion)
 
 Maven:
 
@@ -28,14 +29,14 @@ Maven:
 <dependency>
   <groupId>it.unisa.di.cluelab</groupId>
   <artifactId>polyrec</artifactId>
-  <version>0.2.1</version>
+  <version>0.2.2</version>
 </dependency>
 ```
 
 Gradle:
 
 ```groovy
-compile 'it.unisa.di.cluelab:polyrec:0.2.1'
+compile 'it.unisa.di.cluelab:polyrec:0.2.2'
 ```
 
 ##### Snapshots
